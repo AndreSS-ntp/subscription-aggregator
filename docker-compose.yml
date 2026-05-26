@@ -2,6 +2,8 @@ services:
   sub-aggregator:
     build: ./sub-aggregator-service
     depends_on:
+      sub-migrate:
+        condition: service_completed_successfully
       sub-db:
         condition: service_healthy
     ports:
@@ -24,3 +26,16 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  sub-migrate:
+    build:
+      context: ./sub-aggregator-service
+      dockerfile: Dockerfile.goose
+    env_file: .env
+    environment:
+      GOOSE_DRIVER: postgres
+      GOOSE_DBSTRING: ${DB_URL}
+    depends_on:
+      sub-db:
+        condition: service_healthy
+    command: goose up
