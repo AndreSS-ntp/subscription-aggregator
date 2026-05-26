@@ -4,6 +4,7 @@ import (
 	"context"
 	alogger "github.com/AndreSS-ntp/logger"
 	"github.com/AndreSS-ntp/subscription-aggregator/sub-aggregator-service/internal/config"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"net"
 	"net/http"
 	"os"
@@ -17,6 +18,15 @@ func main() {
 	logger.Info(baseCtx, "Service is running...")
 	ctx, cancel := withGracefulShutdown(baseCtx)
 	defer cancel()
+
+	dbpool, err := pgxpool.New(ctx, config.DB_URL)
+	if err != nil {
+		logger.Error(ctx, "unable to create connection pool: "+err.Error())
+		return
+	}
+	defer dbpool.Close()
+
+	// database := repository.NewRepository(dbpool)
 
 	mux := http.NewServeMux()
 
@@ -34,11 +44,9 @@ func main() {
 		}
 	}()
 
-	// sub_aggregator_service.Testing()
-
 	<-ctx.Done()
 
-	err := server.Shutdown(context.Background())
+	err = server.Shutdown(context.Background())
 	if err != nil {
 		logger.Error(ctx, "error shutting down server: "+err.Error())
 	}
