@@ -2,6 +2,5 @@ package config
 
 import "os"
 
-const IP_port string = "0.0.0.0:7000"
-
+var IP_port = os.Getenv("IP_PORT")
 var DB_URL = os.Getenv("DB_URL")
