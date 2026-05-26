@@ -34,6 +34,8 @@ func main() {
 		}
 	}()
 
+	// sub_aggregator_service.Testing()
+
 	<-ctx.Done()
 
 	err := server.Shutdown(context.Background())
