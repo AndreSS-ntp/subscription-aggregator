@@ -58,10 +58,11 @@ func ToSubscription(dto *SubscriptionDTO) (*Subscription, error) {
 		if len(*dto.EndDate) != 7 {
 			*dto.EndDate = "0" + *dto.EndDate
 		}
-		*endDate, err = time.Parse(dateFormat, *dto.EndDate)
+		tmp, err := time.Parse(dateFormat, *dto.EndDate)
 		if err != nil {
 			return nil, fmt.Errorf("parse date from string: %w", err)
 		}
+		endDate = &tmp
 	}
 
 	return &Subscription{
