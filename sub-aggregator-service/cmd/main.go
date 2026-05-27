@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	alogger "github.com/AndreSS-ntp/logger"
+	"github.com/AndreSS-ntp/subscription-aggregator/sub-aggregator-service/internal/app"
 	"github.com/AndreSS-ntp/subscription-aggregator/sub-aggregator-service/internal/config"
+	"github.com/AndreSS-ntp/subscription-aggregator/sub-aggregator-service/internal/repository"
+	"github.com/AndreSS-ntp/subscription-aggregator/sub-aggregator-service/internal/service"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"net"
 	"net/http"
@@ -26,9 +29,14 @@ func main() {
 	}
 	defer dbpool.Close()
 
-	// database := repository.NewRepository(dbpool)
-
+	database := repository.NewRepository(dbpool)
+	serv := service.NewService(database)
+	application := app.NewApp(serv)
 	mux := http.NewServeMux()
+
+	for pattern, command := range application.Commands {
+		mux.HandleFunc(pattern, alogger.HandlerWithLogger(logger, command.Handler))
+	}
 
 	server := &http.Server{
 		Addr:        config.IP_port,
