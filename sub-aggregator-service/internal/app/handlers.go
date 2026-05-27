@@ -27,6 +27,7 @@ type Service interface {
 	DeleteSubscription(ctx context.Context, id uuid.UUID) error
 	GetSubscriptionById(ctx context.Context, id uuid.UUID) (*domain.Subscription, error)
 	ListSubscriptions(ctx context.Context, limit, offset int) ([]*domain.Subscription, error)
+	TotalCost(ctx context.Context, userID uuid.UUID, serviceName *string, from, to string) (*domain.SubscriptionCostDTO, error)
 }
 
 type ErrorResponse struct {
@@ -41,6 +42,7 @@ func NewApp(s Service) *App {
 		"GET /v1/subscription/{id}":    Command{"Получить запись о подписке по ID.", a.GetSubscription},
 		"PUT /v1/subscription/{id}":    Command{"Обновить запись о подписке по ID", a.UpdateSubscription},
 		"GET /v1/subscriptions":        Command{"Получить список всех записей подписок (параметры пагинации: limit, offset)", a.ListSubscriptions},
+		"GET /v1/subscriptions/total":  Command{"Получить суммарную стоимость подписок за период", a.TotalCost},
 	}
 	a.Commands = commands
 	a.Service = s
@@ -192,6 +194,48 @@ func (a *App) ListSubscriptions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data, err := json.Marshal(subsDTO)
+	if err != nil {
+		sendError(ctx, w, "internal server error", 500)
+		return
+	}
+
+	sendOk(ctx, w, data, 200)
+}
+
+func (a *App) TotalCost(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userIDStr := r.URL.Query().Get("user_id")
+	if userIDStr == "" {
+		sendError(ctx, w, "user_id is required", 400)
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		sendError(ctx, w, "invalid user_id", 400)
+		return
+	}
+
+	from := r.URL.Query().Get("from")
+	to := r.URL.Query().Get("to")
+	if from == "" || to == "" {
+		sendError(ctx, w, "from and to are required", 400)
+		return
+	}
+
+	var serviceName *string
+	if s := r.URL.Query().Get("service_name"); s != "" {
+		serviceName = &s
+	}
+
+	result, err := a.Service.TotalCost(ctx, userID, serviceName, from, to)
+	if err != nil {
+		sendError(ctx, w, err.Error(), 400)
+		return
+	}
+
+	data, err := json.Marshal(result)
 	if err != nil {
 		sendError(ctx, w, "internal server error", 500)
 		return

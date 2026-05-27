@@ -74,3 +74,11 @@ func ToSubscription(dto *SubscriptionDTO) (*Subscription, error) {
 		EndDate:     endDate,
 	}, nil
 }
+
+type SubscriptionCostDTO struct {
+	UserID      uuid.UUID `json:"user_id"`
+	ServiceName *string   `json:"service_name,omitempty"`
+	From        string    `json:"from"`
+	To          string    `json:"to"`
+	TotalCost   int64     `json:"total_cost"`
+}

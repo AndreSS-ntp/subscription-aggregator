@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/AndreSS-ntp/subscription-aggregator/sub-aggregator-service/internal/domain"
 	"github.com/google/uuid"
+	"time"
 )
 
 type Service struct {
@@ -16,6 +18,7 @@ type Repository interface {
 	DeleteSubscription(ctx context.Context, id uuid.UUID) error
 	GetSubscriptionById(ctx context.Context, id uuid.UUID) (*domain.Subscription, error)
 	ListSubscriptions(ctx context.Context, limit, offset int) ([]*domain.Subscription, error)
+	TotalCost(ctx context.Context, userID uuid.UUID, serviceName *string, from, to time.Time) (int64, error)
 }
 
 func NewService(repository Repository) *Service {
@@ -40,4 +43,33 @@ func (s *Service) GetSubscriptionById(ctx context.Context, id uuid.UUID) (*domai
 
 func (s *Service) ListSubscriptions(ctx context.Context, limit, offset int) ([]*domain.Subscription, error) {
 	return s.Repository.ListSubscriptions(ctx, limit, offset)
+}
+
+func (s *Service) TotalCost(ctx context.Context, userID uuid.UUID, serviceName *string, from, to string) (*domain.SubscriptionCostDTO, error) {
+	fromDate, err := time.Parse("01-2006", from)
+	if err != nil {
+		return nil, fmt.Errorf("parse from: %w", err)
+	}
+
+	toDate, err := time.Parse("01-2006", to)
+	if err != nil {
+		return nil, fmt.Errorf("parse to: %w", err)
+	}
+
+	if fromDate.After(toDate) {
+		return nil, fmt.Errorf("from must be before or equal to to")
+	}
+
+	total, err := s.Repository.TotalCost(ctx, userID, serviceName, fromDate, toDate)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.SubscriptionCostDTO{
+		UserID:      userID,
+		ServiceName: serviceName,
+		From:        from,
+		To:          to,
+		TotalCost:   total,
+	}, nil
 }

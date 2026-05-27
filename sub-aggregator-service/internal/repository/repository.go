@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"time"
 )
 
 type Repository struct {
@@ -169,4 +170,32 @@ func (r *Repository) ListSubscriptions(ctx context.Context, limit, offset int) (
 	}
 
 	return subs, nil
+}
+
+func (r *Repository) TotalCost(ctx context.Context, userID uuid.UUID, serviceName *string, from, to time.Time) (int64, error) {
+	query := `
+        SELECT COALESCE(SUM(
+            price * (
+                (EXTRACT(YEAR FROM LEAST(COALESCE(end_date, $3), $3)) * 12 +
+                 EXTRACT(MONTH FROM LEAST(COALESCE(end_date, $3), $3)))
+                -
+                (EXTRACT(YEAR FROM GREATEST(start_date, $2)) * 12 +
+                 EXTRACT(MONTH FROM GREATEST(start_date, $2)))
+                + 1
+            )
+        ), 0)
+        FROM subscriptions
+        WHERE user_id = $1
+          AND start_date <= $3
+          AND (end_date IS NULL OR end_date >= $2)
+          AND ($4::text IS NULL OR service_name = $4)
+    `
+
+	var total int64
+	err := r.pool.QueryRow(ctx, query, userID, from, to, serviceName).Scan(&total)
+	if err != nil {
+		return 0, fmt.Errorf("total cost query: %w", err)
+	}
+
+	return total, nil
 }
