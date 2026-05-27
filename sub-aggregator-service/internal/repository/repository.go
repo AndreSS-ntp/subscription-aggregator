@@ -80,7 +80,7 @@ func (r *Repository) UpdateSubscription(ctx context.Context, sub *domain.Subscri
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("subscription not found")
+			return nil, domain.ErrNotFound
 		}
 		return nil, fmt.Errorf("scan updated subscription: %w", err)
 	}
@@ -99,7 +99,7 @@ func (r *Repository) DeleteSubscription(ctx context.Context, id uuid.UUID) error
 		return fmt.Errorf("delete subscription: %w", err)
 	}
 	if cmdTag.RowsAffected() == 0 {
-		return fmt.Errorf("subscription not found")
+		return domain.ErrNotFound
 	}
 
 	return nil
@@ -124,7 +124,7 @@ func (r *Repository) GetSubscriptionById(ctx context.Context, id uuid.UUID) (*do
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("subscription not found")
+			return nil, domain.ErrNotFound
 		}
 		return nil, fmt.Errorf("scan row: %w", err)
 	}
