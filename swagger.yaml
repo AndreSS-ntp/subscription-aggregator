@@ -1,0 +1,385 @@
+openapi: 3.0.0
+info:
+  title: Subscription Aggregator API
+  description: API для агрегации подписок пользователей
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:7000
+    description: Local server
+
+paths:
+  /v1/subscription:
+    post:
+      summary: Создать новую подписку
+      tags:
+        - Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionRequest'
+            example:
+              service_name: "Yandex Plus"
+              price: 400
+              user_id: "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+              start_date: "01-2025"
+              end_date: "06-2025"
+      responses:
+        '201':
+          description: Подписка успешно создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+        '400':
+          description: Невалидный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Подписка уже существует
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/subscription/{id}:
+    get:
+      summary: Получить подписку по ID
+      tags:
+        - Subscriptions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+      responses:
+        '200':
+          description: Подписка найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+        '400':
+          description: Невалидный ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Подписка не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Обновить подписку по ID
+      tags:
+        - Subscriptions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionRequest'
+            example:
+              service_name: "Yandex Plus Pro"
+              price: 599
+              user_id: "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+              start_date: "01-2025"
+              end_date: "12-2025"
+      responses:
+        '200':
+          description: Подписка успешно обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+        '400':
+          description: Невалидный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Подписка не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Удалить подписку по ID
+      tags:
+        - Subscriptions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+      responses:
+        '204':
+          description: Подписка успешно удалена
+        '400':
+          description: Невалидный ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Подписка не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/subscriptions:
+    get:
+      summary: Получить список всех подписок
+      tags:
+        - Subscriptions
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+          description: Количество записей на странице
+          example: 10
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Смещение от начала списка
+          example: 0
+      responses:
+        '200':
+          description: Список подписок
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubscriptionResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/subscriptions/total-cost:
+    get:
+      summary: Получить суммарную стоимость подписок за период
+      description: >
+        Считает суммарную стоимость подписок пользователя за указанный период.
+        Для каждой подписки считается количество пересекающихся месяцев с периодом
+        и умножается на месячную стоимость.
+      tags:
+        - Subscriptions
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID пользователя
+          example: "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{2}-\d{4}$'
+          description: Начало периода в формате MM-YYYY
+          example: "01-2025"
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{2}-\d{4}$'
+          description: Конец периода в формате MM-YYYY
+          example: "06-2025"
+        - name: service_name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Фильтр по названию сервиса
+          example: "Yandex Plus"
+      responses:
+        '200':
+          description: Суммарная стоимость подписок
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TotalCostResponse'
+              example:
+                user_id: "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+                service_name: "Yandex Plus"
+                from: "01-2025"
+                to: "06-2025"
+                total_cost: 2400
+        '400':
+          description: Невалидный запрос (отсутствуют обязательные параметры, невалидный uuid, from позже to)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    SubscriptionRequest:
+      type: object
+      required:
+        - service_name
+        - price
+        - user_id
+        - start_date
+      properties:
+        service_name:
+          type: string
+          description: Название сервиса
+          example: "Yandex Plus"
+        price:
+          type: integer
+          format: int64
+          description: Месячная стоимость подписки
+          example: 400
+        user_id:
+          type: string
+          format: uuid
+          description: ID пользователя
+          example: "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+        start_date:
+          type: string
+          pattern: '^\d{2}-\d{4}$'
+          description: Дата начала подписки в формате MM-YYYY
+          example: "01-2025"
+        end_date:
+          type: string
+          pattern: '^\d{2}-\d{4}$'
+          description: Дата окончания подписки в формате MM-YYYY (опционально)
+          example: "06-2025"
+
+    SubscriptionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID подписки
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        service_name:
+          type: string
+          description: Название сервиса
+          example: "Yandex Plus"
+        price:
+          type: integer
+          format: int64
+          description: Месячная стоимость подписки
+          example: 400
+        user_id:
+          type: string
+          format: uuid
+          description: ID пользователя
+          example: "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+        start_date:
+          type: string
+          description: Дата начала подписки в формате MM-YYYY
+          example: "01-2025"
+        end_date:
+          type: string
+          nullable: true
+          description: Дата окончания подписки в формате MM-YYYY
+          example: "06-2025"
+
+    TotalCostResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: ID пользователя
+          example: "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+        service_name:
+          type: string
+          nullable: true
+          description: Название сервиса (если передан фильтр)
+          example: "Yandex Plus"
+        from:
+          type: string
+          description: Начало периода в формате MM-YYYY
+          example: "01-2025"
+        to:
+          type: string
+          description: Конец периода в формате MM-YYYY
+          example: "06-2025"
+        total_cost:
+          type: integer
+          format: int64
+          description: Суммарная стоимость подписок за период
+          example: 2400
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Описание ошибки
+          example: "subscription not found"
