@@ -150,7 +150,7 @@ func (a *App) UpdateSubscription(w http.ResponseWriter, r *http.Request) {
 	}
 	sub.ID = id
 
-	updatedSub, err := a.Service.CreateSubscription(ctx, sub)
+	updatedSub, err := a.Service.UpdateSubscription(ctx, sub)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			sendError(ctx, w, domain.ErrNotFound.Error(), 404)
