@@ -12,5 +12,5 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS items;
+DROP TABLE IF EXISTS subscriptions;
 -- +goose StatementEnd
